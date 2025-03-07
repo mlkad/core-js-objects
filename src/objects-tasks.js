@@ -318,7 +318,7 @@ function group(array, keySelector, valueSelector) {
  * and implement the functionality to build the css selectors using the provided cssSelectorBuilder.
  * Each selector should have the stringify() method to output the string representation
  * according to css specification.
- *
+ *e
  * Provided cssSelectorBuilder should be used as facade only to create your own classes,
  * for example the first method of cssSelectorBuilder can be like this:
  *   element: function(value) {
@@ -355,34 +355,67 @@ function group(array, keySelector, valueSelector) {
  *
  *  For more examples see unit tests.
  */
-
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  selector: '',
+  order: [],
+
+  createNew(part, type) {
+    if (
+      ['element', 'id', 'pseudoElement'].includes(type) &&
+      this.order.includes(type)
+    )
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+
+    if (this.order.some((t) => this.getOrder(t) > this.getOrder(type)))
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+
+    return Object.assign(Object.create(this), {
+      selector: this.selector + part,
+      order: [...this.order, type],
+    });
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  getOrder(type) {
+    return [
+      'element',
+      'id',
+      'class',
+      'attr',
+      'pseudoClass',
+      'pseudoElement',
+    ].indexOf(type);
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  element(value) {
+    return this.createNew(value, 'element');
+  },
+  id(value) {
+    return this.createNew(`#${value}`, 'id');
+  },
+  class(value) {
+    return this.createNew(`.${value}`, 'class');
+  },
+  attr(value) {
+    return this.createNew(`[${value}]`, 'attr');
+  },
+  pseudoClass(value) {
+    return this.createNew(`:${value}`, 'pseudoClass');
+  },
+  pseudoElement(value) {
+    return this.createNew(`::${value}`, 'pseudoElement');
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  combine(sel1, comb, sel2) {
+    return Object.assign(Object.create(this), {
+      selector: `${sel1.stringify()} ${comb} ${sel2.stringify()}`,
+    });
   },
-
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
-  },
-
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
-  },
-
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  stringify() {
+    return this.selector;
   },
 };
 
